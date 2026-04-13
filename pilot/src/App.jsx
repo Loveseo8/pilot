@@ -50,10 +50,33 @@ const demoHabits = [
 ];
 
 function normalizeHabit(habit) {
+  const normalizedTitle =
+    typeof habit?.title === 'string' && habit.title.trim()
+      ? habit.title.trim()
+      : 'Новая привычка';
+  const normalizedCategory =
+    typeof habit?.category === 'string' && habit.category.trim()
+      ? habit.category.trim()
+      : 'Личное';
+  const normalizedFrequency =
+    typeof habit?.frequency === 'string' && habit.frequency.trim()
+      ? habit.frequency.trim()
+      : 'Каждый день';
+  const normalizedStreak = Number.isFinite(Number(habit?.streak))
+    ? Math.max(0, Number(habit.streak))
+    : 0;
+
   return {
     ...habit,
-    category: categoryMap[habit.category] ?? habit.category,
-    frequency: frequencyMap[habit.frequency] ?? habit.frequency,
+    id:
+      typeof habit?.id === 'string' && habit.id.trim()
+        ? habit.id
+        : `habit-${Math.random().toString(36).slice(2, 10)}`,
+    title: normalizedTitle,
+    category: categoryMap[normalizedCategory] ?? normalizedCategory,
+    frequency: frequencyMap[normalizedFrequency] ?? normalizedFrequency,
+    streak: normalizedStreak,
+    completedToday: Boolean(habit?.completedToday),
   };
 }
 
@@ -70,7 +93,7 @@ function loadHabits() {
   try {
     const parsedHabits = JSON.parse(savedHabits);
     return Array.isArray(parsedHabits)
-      ? parsedHabits.map(normalizeHabit)
+      ? parsedHabits.filter(Boolean).map(normalizeHabit)
       : demoHabits.map(normalizeHabit);
   } catch {
     return demoHabits.map(normalizeHabit);
@@ -98,9 +121,10 @@ export default function App() {
   const editingHabit = habits.find((habit) => habit.id === editingHabitId) ?? null;
 
   const filteredHabits = habits.filter((habit) => {
+    const searchValue = searchTerm.toLowerCase();
     const matchesSearch =
-      habit.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      habit.category.toLowerCase().includes(searchTerm.toLowerCase());
+      habit.title.toLowerCase().includes(searchValue) ||
+      habit.category.toLowerCase().includes(searchValue);
 
     if (statusFilter === 'completed') {
       return matchesSearch && habit.completedToday;
