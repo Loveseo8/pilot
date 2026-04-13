@@ -191,6 +191,7 @@ export default function App() {
 
         <section className="layout-grid">
           <HabitForm
+            key={editingHabitId ?? 'new-habit'}
             editingHabit={editingHabit}
             onCancelEdit={handleCancelEdit}
             onSaveHabit={handleSaveHabit}
