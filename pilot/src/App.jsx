@@ -1,15 +1,13 @@
-import { useEffect, useState } from 'react';
-import AppHeader from './components/AppHeader.jsx';
-import StatsPanel from './components/StatsPanel.jsx';
-import HabitForm from './components/HabitForm.jsx';
-import HabitFilters from './components/HabitFilters.jsx';
-import HabitList from './components/HabitList.jsx';
+import { useEffect, useMemo, useState } from 'react';
+import { NavLink, Route, Routes } from 'react-router-dom';
+import DashboardPage from './pages/DashboardPage.jsx';
+import IdeasPage from './pages/IdeasPage.jsx';
 
 const STORAGE_KEY = 'habit-pilot-storage';
 
 const categoryMap = {
   Health: 'Здоровье',
-  Study: 'Учёба',
+  Study: 'Учеба',
   Focus: 'Фокус',
   Sport: 'Спорт',
   Personal: 'Личное',
@@ -34,7 +32,7 @@ const demoHabits = [
   {
     id: 'habit-2',
     title: '30 минут чтения',
-    category: 'Учёба',
+    category: 'Учеба',
     frequency: '5 раз в неделю',
     streak: 2,
     completedToday: false,
@@ -118,36 +116,26 @@ export default function App() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(habits));
   }, [habits]);
 
-  const editingHabit = habits.find((habit) => habit.id === editingHabitId) ?? null;
+  const stats = useMemo(() => {
+    const completedCount = habits.filter((habit) => habit.completedToday).length;
+    const bestStreak = habits.reduce(
+      (currentBest, habit) => Math.max(currentBest, habit.streak),
+      0,
+    );
 
-  const filteredHabits = habits.filter((habit) => {
-    const searchValue = searchTerm.toLowerCase();
-    const matchesSearch =
-      habit.title.toLowerCase().includes(searchValue) ||
-      habit.category.toLowerCase().includes(searchValue);
+    return {
+      totalHabits: habits.length,
+      completedCount,
+      activeCount: habits.length - completedCount,
+      bestStreak,
+    };
+  }, [habits]);
 
-    if (statusFilter === 'completed') {
-      return matchesSearch && habit.completedToday;
-    }
-
-    if (statusFilter === 'active') {
-      return matchesSearch && !habit.completedToday;
-    }
-
-    return matchesSearch;
-  });
-
-  const completedCount = habits.filter((habit) => habit.completedToday).length;
-  const bestStreak = habits.reduce(
-    (currentBest, habit) => Math.max(currentBest, habit.streak),
-    0,
-  );
-
-  function handleSaveHabit(habitData) {
+  function saveHabit(habitData) {
     if (editingHabitId) {
       setHabits((currentHabits) =>
         currentHabits.map((habit) =>
-          habit.id === editingHabitId ? { ...habit, ...habitData } : habit,
+          habit.id === editingHabitId ? normalizeHabit({ ...habit, ...habitData }) : habit,
         ),
       );
       setEditingHabitId(null);
@@ -155,16 +143,30 @@ export default function App() {
     }
 
     setHabits((currentHabits) => [
-      {
+      normalizeHabit({
         id: createHabitId(),
         completedToday: false,
         ...habitData,
-      },
+      }),
       ...currentHabits,
     ]);
   }
 
-  function handleDeleteHabit(habitId) {
+  function addHabitFromIdea(title) {
+    setHabits((currentHabits) => [
+      normalizeHabit({
+        id: createHabitId(),
+        title,
+        category: 'Личное',
+        frequency: 'Каждый день',
+        streak: 0,
+        completedToday: false,
+      }),
+      ...currentHabits,
+    ]);
+  }
+
+  function deleteHabit(habitId) {
     setHabits((currentHabits) => currentHabits.filter((habit) => habit.id !== habitId));
 
     if (editingHabitId === habitId) {
@@ -172,7 +174,7 @@ export default function App() {
     }
   }
 
-  function handleToggleHabit(habitId) {
+  function toggleHabit(habitId) {
     setHabits((currentHabits) =>
       currentHabits.map((habit) => {
         if (habit.id !== habitId) {
@@ -190,54 +192,50 @@ export default function App() {
     );
   }
 
-  function handleStartEdit(habitId) {
-    setEditingHabitId(habitId);
-  }
-
-  function handleCancelEdit() {
-    setEditingHabitId(null);
-  }
-
   return (
     <div className="app-shell">
       <div className="background-glow background-glow-left" />
       <div className="background-glow background-glow-right" />
 
       <main className="page">
-        <AppHeader totalHabits={habits.length} completedCount={completedCount} />
+        <nav className="top-nav" aria-label="Основная навигация">
+          <NavLink to="/" end>
+            Мои привычки
+          </NavLink>
+          <NavLink to="/ideas">Идеи</NavLink>
+        </nav>
 
-        <StatsPanel
-          totalHabits={habits.length}
-          completedCount={completedCount}
-          activeCount={habits.length - completedCount}
-          bestStreak={bestStreak}
-        />
-
-        <section className="layout-grid">
-          <HabitForm
-            key={editingHabitId ?? 'new-habit'}
-            editingHabit={editingHabit}
-            onCancelEdit={handleCancelEdit}
-            onSaveHabit={handleSaveHabit}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <DashboardPage
+                habits={habits}
+                stats={stats}
+                searchTerm={searchTerm}
+                statusFilter={statusFilter}
+                editingHabitId={editingHabitId}
+                onCancelEdit={() => setEditingHabitId(null)}
+                onDeleteHabit={deleteHabit}
+                onEditHabit={setEditingHabitId}
+                onSaveHabit={saveHabit}
+                onSearchChange={setSearchTerm}
+                onStatusChange={setStatusFilter}
+                onToggleHabit={toggleHabit}
+              />
+            }
           />
-
-          <div className="content-stack">
-            <HabitFilters
-              habitsShown={filteredHabits.length}
-              searchTerm={searchTerm}
-              statusFilter={statusFilter}
-              onSearchChange={setSearchTerm}
-              onStatusChange={setStatusFilter}
-            />
-
-            <HabitList
-              habits={filteredHabits}
-              onDeleteHabit={handleDeleteHabit}
-              onEditHabit={handleStartEdit}
-              onToggleHabit={handleToggleHabit}
-            />
-          </div>
-        </section>
+          <Route
+            path="/ideas"
+            element={
+              <IdeasPage
+                habitsCount={stats.totalHabits}
+                completedCount={stats.completedCount}
+                onAddHabit={addHabitFromIdea}
+              />
+            }
+          />
+        </Routes>
       </main>
     </div>
   );

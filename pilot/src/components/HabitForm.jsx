@@ -77,7 +77,7 @@ export default function HabitForm({ editingHabit, onSaveHabit, onCancelEdit }) {
           Категория
           <select name="category" value={formData.category} onChange={handleChange}>
             <option value="Здоровье">Здоровье</option>
-            <option value="Учёба">Учёба</option>
+            <option value="Учеба">Учеба</option>
             <option value="Фокус">Фокус</option>
             <option value="Спорт">Спорт</option>
             <option value="Личное">Личное</option>

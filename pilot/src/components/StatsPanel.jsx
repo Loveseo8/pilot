@@ -17,7 +17,7 @@ export default function StatsPanel({
     <section className="stats-grid">
       <StatCard title="Всего привычек" value={totalHabits} accentClass="accent-sun" />
       <StatCard title="Выполнено сегодня" value={completedCount} accentClass="accent-mint" />
-      <StatCard title="Ещё в работе" value={activeCount} accentClass="accent-sea" />
+      <StatCard title="Еще в работе" value={activeCount} accentClass="accent-sea" />
       <StatCard title="Лучшая серия" value={`${bestStreak} дн.`} accentClass="accent-coral" />
     </section>
   );
